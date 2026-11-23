@@ -1,39 +1,25 @@
 import java.util.*;
 
 class Task_CinemaBooking {
-    static class Seat {
-        final char row;
-        final int number;
-
-        Seat(char row, int number) {
-            this.row = row;
-            this.number = number;
-        }
+    record Seat(char row, int number) {
 
         @Override
-        public String toString() {
-            return "" + row + number;
-        }
+            public String toString() {
+                return "" + row + number;
+            }
 
-        // TODO 1: override equals()
-        //   Two Seat objects are the same seat when the row AND the number are the same.
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof Seat)) return false;
-            Seat other = (Seat) o;
-            return row == other.row && number == other.number;
-        }
+            // TODO 1: override equals()
+            //   Two Seat objects are the same seat when the row AND the number are the same.
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (!(o instanceof Seat other)) return false;
+                return row == other.row && number == other.number;
+            }
 
-        // TODO 2: override hashCode()
-        //   Equal seats must return the same number.
-        @Override
-        public int hashCode() {
-            return Objects.hash(row, number);                 // uses the same fields as equals()
-        }
     }
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
 
 
         HashMap<Seat, String> bookings = new HashMap<>();
@@ -101,68 +87,55 @@ class Task_CinemaBooking {
 
  Q1. Why did we have to override hashCode() and equals()?
 
-   Because every seat lookup in the task uses a NEW Seat object
-   (new Seat('C', 3)), not the same object that was put in the map.
-   The default equals() inherited from Object only compares references
-   (memory addresses), so a new Seat('C', 3) would never be "equal" to
-   the Seat('C', 3) already stored, and get()/containsKey() would fail.
-   HashMap also groups keys into buckets using hashCode(); if two equal
-   seats return different hash codes, the map looks in the wrong bucket
-   and never even calls equals(). So we override equals() to compare the
-   CONTENT (row and number), and hashCode() so equal seats always land
-   in the same bucket. The rule: equal objects must have equal hash codes.
+   _ cause we use newSeat every time , this means new object in memory
+     and default equals compares memory address not value so newSeat not equals
+     the stored one .
+   _ also hashmap distributes key among buckets according to hashcode
+   _ equals compares row and num , and hashcode ensures that equal seats
+     go to same bucket .
 
 
  Q2. Delete your hashCode() but keep equals(), and run again.
      What happens? Why?
 
-   The map still misbehaves: get(C3) returns null and containsKey(A2)
-   is false, exactly as if equals() were missing.
-   Why: HashMap first computes hashCode() of the lookup key to pick a
-   bucket, then only calls equals() on keys inside that bucket. With the
-   default Object.hashCode(), the new Seat('C', 3) gets a different hash
-   than the stored Seat('C', 3), so the map searches a different bucket
-   and our equals() is never called. equals() alone is useless without a
-   matching hashCode().
+ _ get for C3 returned null ,containsKey for A2 returned false,
+   B5 was booked twice (by Omar and Youssef), moving Ali left A1 as is and added D2 with a null value,
+   and the count became 7 instead of 4
+ _ cause hashmap firstly calculates hashcode then to choose  bucket call equals inside it
+   without right hashcode new seat goes to another bucket and equals not called .
+
 
 
  Q3. Why are row and number final? What could go wrong if the number
      of a booked seat could be changed after it was put in the map?
 
-   final makes a Seat immutable after construction. The hash code is
-   computed from row and number at the moment the seat is put() into the
-   map, and the map stores it in the bucket for that hash. If number
-   could change Afterwards, the object's hashCode() would change, but
-   the entry would stay in the OLD bucket. Any later get()/containsKey()
-   would compute the NEW hash, search the NEW bucket, and never find the
-   entry. The booking would be lost inside the map (a memory/logic leak)
-   and two entries could even end up representing the same seat.
+   _ final makes seat static ,
+     hashcode is calculated from row and num while put
+     if num changed the hashcode changes but element will stay
+     in old bucket so booking lost inside map even though it exists .
+
 
 
  Q4. Change equals(Object o) to equals(Seat o). What happens?
      Then also remove @Override and run again. What happens now?
 
-   With equals(Seat o) and @Override still present, the code does NOT
-   compile: "method does not override or implement a method from a
-   supertype". Object declares equals(Object), so a parameter of type
-   Seat is not an override; it is an OVERLOAD (a second, different
-   method). @Override correctly catches the mistake.
-   After removing @Override it compiles, but the map is broken again:
-   HashMap always calls equals(Object), i.e. the default reference
-   comparison from Object, and our equals(Seat) overload is never used
-   by the map. Lookups with new Seat objects fail again.
+  _ with @Override, the code doesn't even compile and throws error ,
+    because equals(Seat) doesn't match Object.equals(Object) .
+  _ if we remove @Override, the code compiles fine,
+    but the map breaks again
+    hashmap always calls equals(Object) the default comparison and our
+    overload isn't used at all.
+
 
 
  BONUS. Replace the whole Seat class with this one line:
             record Seat(char row, int number) {}
 
-   The program compiles and produces the same correct output.
-   A record automatically generates a constructor, accessors row() and
-   number(), and correct implementations of equals(), hashCode() and
-   toString() based on ALL its components (row and number). The fields
-   are implicitly final, so the key is immutable. toString() changes
-   slightly ("Seat[row=B, number=5]" instead of "B5"), which only
-   affects how the map is printed, not the logic. So a record gives us
-   exactly the value-based equality and hashing we wrote by hand, for
-   free, which is why records are ideal as map keys.
+     _ Everything works as expected—bookings, lookups, and the seating
+      chart all match the expected output (the only difference is that
+      keys print as Seat[row=A, number=1] instead of A1).
+      java record automatically makes row and number final and generates the constructor,
+      equals(), hashCode(), and toString() behind the scenes using both fields.
+
+
 */
